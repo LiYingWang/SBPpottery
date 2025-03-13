@@ -2,7 +2,7 @@ Package: SBPpottery
 Title: Research compendium for pottery ananlysis from Sanbaopi
 Version: 0.0.0.9000
 Authors@R:
-    person("Li-Ying", "Wang", , "liyingw15@gmail.com", role = c("aut", "cre"))
+    person("Li-Ying", "Wang", "liyingw15@gmail.com", role = c("aut", "cre"))
 Description: Research compendium
 License: MIT + file LICENSE
 ByteCompile: true
