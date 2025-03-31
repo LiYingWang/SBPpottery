@@ -2,52 +2,51 @@ library(tidyverse)
 library(readxl)
 library(stringr)
 isotopes_2023 <- read_excel(here::here("analysis","data","raw_data","SPP-manual-qunat-Jun-2023.xls"))
-SBP_ceramics <- read_excel(here::here("analysis","data","raw_data","SPP5脂肪酸分析陶片挑選清單_1110.xlsx"))
+SBP_ceramics <- read_excel(here::here("analysis","data","raw_data","SPP5_ceramic_samples.xlsx"), sheet =2)
 
 # tidy metadata
 SBP_ceramics <-
   SBP_ceramics %>%
   mutate(Sam_no = as.character(`流水號`))
 
-# join two datasets
-SBP_isotopes <-
-  rbind(isotopes_2023, isotopes_2024) %>%
-  filter(str_detect(Filename, "SPP"))
+# samples with low yields
+lowyield <- c("SPP006", "SPP017", "SPP032", "SPP010", "SPP007", "SPP-008", "SPP-028")
 
-# remove low yields
-SPP_isotopes_rm <-
-  rbind(isotopes_2023, isotopes_2024) %>%
-  filter(`Ampl  44 (mV)` > 150 & str_detect(Filename, "SPP"))
+# datasets for analysis
+SBP_isotopes_rm <-
+  isotopes_2023 %>%
+  filter(str_detect(Filename, "SPP")) %>%
+  filter(!str_detect(Filename, paste(lowyield, collapse = "|"))) %>% # remove low yields
+  filter(`Ampl  44 (mV)` > 200) # background noise, 150
 
-# tidy up
-tidy_SPP_isotopes <-
-  SPP_isotopes_rm %>% # SPP_isotopes
-  select("Filename", "Rt (s)","d13C_PDB (permil)") %>%
-  mutate(Filename = sapply(str_extract_all(Filename,
-                                           "SPP[0-9]+|SPP-[0-9]+|SPP-D[0-9]+-[0-9]|SPP-[:alpha:]+[0-9]"), toString)) %>%
+# tidy up isotope data
+tidy_SBP_isotopes <-
+  SBP_isotopes_rm %>%
+  select("Filename", "Rt (s)", "d13C_PDB (permil)") %>%
+  mutate(Filename = sapply(str_extract_all(
+    Filename, "SPP[0-9]+|SPP-[0-9]+|SPP-D[0-9]+-[0-9]|SPP-[:alpha:]+[0-9]"), toString)) %>%
   mutate(FA = case_when(`Rt (s)`<1260&`Rt (s)`>1240  ~ "C16",
-                        `Rt (s)`<1370&`Rt (s)`>1352  ~ "C18")) %>%
+                        `Rt (s)`<1369&`Rt (s)`>1352  ~ "C18")) %>%
   group_by(Filename, FA) %>%
-  filter(!is.na(FA)) %>%
   summarize(Ave = mean(`d13C_PDB (permil)`)) %>%
   pivot_wider(names_from = FA, values_from = Ave) %>%
   dplyr::mutate(Delta = C18 -C16) %>%
   mutate(Sam_no = sapply(str_extract_all(Filename, "(?<=SPP).*"), toString)) %>%
   mutate(Sam_no = str_remove_all(Sam_no, "^-")) %>% #"[0-9]+|D[0-9]+-[0-9]|[A-Z]+[0-9]"
   mutate(Sam_no = sapply(str_remove(Sam_no, "^0+"), toString)) %>%
-  left_join(SPP_ceramics) %>%
+  left_join(SBP_ceramics) %>%
   mutate(period = case_when(`所屬文化` == "大湖烏山頭期" ~ "Late Neolithic",
                             `所屬文化` == "蔦松早期" ~ "Iron Age",
                             `所屬文化` == "疑似大湖晚期" ~ "Final Neolithic")) %>%
-  mutate(period = ifelse(str_detect(Sam_no, "D"), "Iron Age", period)) %>%
   mutate(group = ifelse(is.na(period), "Bone", period))
 
 # plot isotopes of 16 and C18 with reference range
 library(png)
 library(ggpubr)
 tem <- readPNG("tem.png")
+tem2 <- readPNG(here::here("analysis", "figures","iso_ellipse.png"))
 
-ggplot(tidy_SPP_isotopes,
+ggplot(tidy_SBP_isotopes,
        aes(C16,C18)) +
   geom_point(size = 2, alpha = 0.9, aes(color = group))+ #period
   ggrepel::geom_text_repel(aes(label = Sam_no), size = 2) +
@@ -57,8 +56,15 @@ ggplot(tidy_SPP_isotopes,
   xlim(-40,-10) +
   ylim(-40,-10) +
   coord_fixed(ratio=1) +
-  annotation_raster(tem, ymin = -42.8, ymax= -8 ,
-                    xmin = -44.5 , xmax = -5.65)
+  geom_abline(intercept = -0.7, linetype = "dashed") +
+  geom_abline(intercept = -3.1, linetype = "dashed") +
+  annotation_raster(tem2, ymin = -40, ymax= -10 ,
+                    xmin = -40.1 , xmax = -10) +
+  annotate("text", size = 2.5, x = -35, y = -30.5, label = "FW") +
+  annotate("text", size = 2.5, x = -28, y = -33, label = "R") +
+  annotate("text", size = 2.5, x = -28.5, y = -25, label = "P") +
+  annotate("text", size = 2.5, x = -22, y = -17, label = "M") +
+  theme_minimal()
 
 # plot isotopes of 16 and C18 using a different reference range
 tem2 <- readPNG("tem2.png")
