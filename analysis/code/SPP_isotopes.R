@@ -17,7 +17,7 @@ SBP_isotopes_rm <-
   isotopes_2023 %>%
   filter(str_detect(Filename, "SPP")) %>%
   filter(!str_detect(Filename, paste(lowyield, collapse = "|"))) %>% # remove low yields
-  filter(`Ampl  44 (mV)` > 200) # background noise, 150
+  filter(`Ampl  44 (mV)` > 250) # background noise
 
 # tidy up isotope data
 tidy_SBP_isotopes <-
@@ -35,10 +35,12 @@ tidy_SBP_isotopes <-
   mutate(Sam_no = str_remove_all(Sam_no, "^-")) %>% #"[0-9]+|D[0-9]+-[0-9]|[A-Z]+[0-9]"
   mutate(Sam_no = sapply(str_remove(Sam_no, "^0+"), toString)) %>%
   left_join(SBP_ceramics) %>%
-  mutate(period = case_when(`所屬文化` == "大湖烏山頭期" ~ "Late Neolithic",
+  mutate(group = case_when(`所屬文化` == "大湖烏山頭期" ~ "Late Neolithic",
                             `所屬文化` == "蔦松早期" ~ "Iron Age",
-                            `所屬文化` == "疑似大湖晚期" ~ "Final Neolithic")) %>%
-  mutate(group = ifelse(is.na(period), "Bone", period))
+                            `所屬文化` == "疑似大湖晚期" ~ "Final Neolithic", TRUE ~ "Bone")) %>%
+  mutate(context = case_when(str_detect(`出土脈絡`, "文化") ~ "cultural layer",
+                             str_detect(`出土脈絡`, "灰坑") ~ "midden",
+                             str_detect(`出土脈絡`, "墓葬") ~ "burial"))
 
 # plot isotopes of 16 and C18 with reference range
 library(png)
@@ -46,17 +48,43 @@ library(ggpubr)
 tem <- readPNG("tem.png")
 tem2 <- readPNG(here::here("analysis", "figures","iso_ellipse.png"))
 
-ggplot(tidy_SBP_isotopes,
+isotope_period <-
+  ggplot(tidy_SBP_isotopes,
        aes(C16,C18)) +
-  geom_point(size = 2, alpha = 0.9, aes(color = group))+ #period
+  geom_point(size = 2, alpha = 0.9, aes(color = group))+ # period
   ggrepel::geom_text_repel(aes(label = Sam_no), size = 2) +
-  theme_minimal(base_size = 14) +
   labs(x = bquote(delta*{}^13*"C 16:0 \u2030"),
        y = bquote(delta*{}^13*"C 18:0 \u2030")) +
   xlim(-40,-10) +
   ylim(-40,-10) +
   coord_fixed(ratio=1) +
-  geom_abline(intercept = -0.7, linetype = "dashed") +
+  geom_abline(intercept = -1, linetype = "dashed") +
+  geom_abline(intercept = -3.1, linetype = "dashed") +
+  annotation_raster(tem2, ymin = -40, ymax= -10 ,
+                    xmin = -40.1 , xmax = -10) +
+  annotate("text", size = 2.5, x = -35, y = -30.5, label = "FW") +
+  annotate("text", size = 2.5, x = -28, y = -33, label = "R") +
+  annotate("text", size = 2.5, x = -28.5, y = -25, label = "P") +
+  annotate("text", size = 2.5, x = -22, y = -17, label = "M") +
+  theme_minimal(base_size = 14)
+
+# plot isotopes of 16 and C18 by context
+isotope_context <-
+  tidy_SBP_isotopes %>%
+  filter(!is.na(context)) %>%
+  ggplot(aes(C16, C18)) +
+  geom_point(size = 2, alpha = 0.9, aes(color = context)) +
+  ggrepel::geom_text_repel(aes(label = Sam_no)) +
+  labs(x = bquote(delta*{}^13*"C 16:0 \u2030"),
+       y = bquote(delta*{}^13*"C 18:0 \u2030")) +
+  scale_x_continuous(limits = c(-35, -20),
+                     breaks = seq(-35, -20, 2)) +
+  scale_y_continuous(limits = c(-35, -20),
+                     breaks = seq(-35, -20, 2)) +
+  xlim(-40,-10) +
+  ylim(-40,-10) +
+  coord_fixed(ratio=1) +
+  geom_abline(intercept = -1, linetype = "dashed") + #Suryanarayan et al.2021
   geom_abline(intercept = -3.1, linetype = "dashed") +
   annotation_raster(tem2, ymin = -40, ymax= -10 ,
                     xmin = -40.1 , xmax = -10) +
@@ -66,44 +94,9 @@ ggplot(tidy_SBP_isotopes,
   annotate("text", size = 2.5, x = -22, y = -17, label = "M") +
   theme_minimal()
 
-# plot isotopes of 16 and C18 using a different reference range
-tem2 <- readPNG("tem2.png")
-tidy_SPP_isotopes %>%
-  ggplot(aes(C16, C18)) +
-  geom_point(size = 2, alpha = 0.9, aes(color = group))+
-  ggrepel::geom_text_repel(aes(label = Sam_no), size = 2) +
-  theme_minimal(base_size = 14) +
-  labs(x = bquote(delta*{}^13*"C 16:0 \u2030"),
-       y = bquote(delta*{}^13*"C 18:0 \u2030")) +
-  xlim(-40,-20) +
-  ylim(-40,-20) +
-  coord_fixed(ratio=1) +
-  #scale_colour_viridis_d(direction = -1) +
-  annotation_raster(tem2, ymin = -45.1, ymax= -15.1 ,
-                    xmin = -45.55, xmax = -15.55)
-
-# plot isotopes of 16 and C18 with reference line only
-ggplot(tidy_SPP_isotopes,
-       aes(C16, C18)) +
-  geom_point(size = 2, alpha = 0.9, aes(color = group)) +
-  ggrepel::geom_text_repel(aes(label = Sam_no)) +
-  theme_minimal() +
-  labs(x = bquote(delta*{}^13*"C 16:0 \u2030"),
-       y = bquote(delta*{}^13*"C 18:0 \u2030")) +
-  scale_x_continuous(limits = c(-35, -20),
-                     breaks = seq(-35, -20, 2)) +
-  scale_y_continuous(limits = c(-35, -20),
-                     breaks = seq(-35, -20, 2)) +
-  #coord_fixed(ratio = 1) +
-  geom_abline(intercept = -1, linetype = "dashed") + #Suryanarayan et al.2021
-  geom_abline(intercept = -3.1, linetype = "dashed") +
-  annotate("text", x = -21.5, y = -21.5, angle = 45, vjust = 1.5,
-           label = bquote(Delta*{}^13*"C = -1 \u2030")) +
-  annotate("text", x = -21.5, y = -24.5, angle = 45, vjust = 1.5,
-           label = bquote(Delta*{}^13*"C = -3.1 \u2030"))
-
 # big delta
-ggplot(tidy_SPP_isotopes, # delta_meth_cor or delta_blank_cor
+Delta <-
+  ggplot(tidy_SBP_isotopes, # delta_meth_cor or delta_blank_cor
        aes(C16, Delta)) +
   geom_point(size = 2, alpha = 0.9, aes(color = group))+
   ggrepel::geom_text_repel(aes(label = Sam_no)) +
