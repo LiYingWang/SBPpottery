@@ -1,30 +1,15 @@
 ---
-title: "Title Goes Here"
+title: "Exploring patterins in pottery use in the southwestern Taiwan during the Neolithic and Iron Age transition "
 author:
-  - Jane Doe:
+  - Li-Ying Wang:
       correspondence: "yes"
-      email: janedoe@fosg.org
-      orcid: 0000-0003-1689-0557
-      institute:
-        - fosg
-        - fop
-  - John Q. Doe:
-      institute: fosg
-      orcid: 0000-0003-1689-0558
-  - Peder Ås:
-      institute: fosg
-      orcid: 0000-0003-1689-0559
-  - Juan Pérez:
-      orcid: 0000-0003-1689-0551
-      institute:
-        - name: Acme Corporation
-  - Max Mustermann:
-      orcid: 0000-0003-1689-0552
-institute:
-  - fosg:
-      name: Formatting Open Science Group
-      address: 23 Science Street, Eureka, Mississippi, USA
-  - fop: Federation of Planets
+      email: liyingw15@gmail.com
+      orcid: 0000-0001-9060-2125
+      institute: Academia Sinica
+  - XX XX:
+      institute: National Taiwan University
+  - YY YY :
+      institute: Academia Sinica
 title-block-published: "Last updated"  
 date: now
 date-format: long
