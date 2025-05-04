@@ -35,9 +35,9 @@ tidy_SBP_isotopes <-
   mutate(Sam_no = str_remove_all(Sam_no, "^-")) %>% #"[0-9]+|D[0-9]+-[0-9]|[A-Z]+[0-9]"
   mutate(Sam_no = sapply(str_remove(Sam_no, "^0+"), toString)) %>%
   left_join(SBP_ceramics) %>%
-  mutate(group = case_when(`所屬文化` == "大湖烏山頭期" ~ "Late Neolithic",
+  mutate(group = case_when(`所屬文化` == "大湖烏山頭期" ~ "Neolithic-Wushantou",
                             `所屬文化` == "蔦松早期" ~ "Iron Age",
-                            `所屬文化` == "疑似大湖晚期" ~ "Final Neolithic", TRUE ~ "Bone")) %>%
+                            `所屬文化` == "疑似大湖晚期" ~ "Neolithic-Final", TRUE ~ "Bone")) %>%
   mutate(context = case_when(str_detect(`出土脈絡`, "文化") ~ "cultural layer",
                              str_detect(`出土脈絡`, "灰坑") ~ "midden",
                              str_detect(`出土脈絡`, "墓葬") ~ "burial"))
@@ -49,8 +49,9 @@ tem <- readPNG("tem.png")
 tem2 <- readPNG(here::here("analysis", "figures","iso_ellipse.png"))
 
 isotope_period <-
-  ggplot(tidy_SBP_isotopes,
-       aes(C16,C18)) +
+  tidy_SBP_isotopes %>%
+  filter(!group == "Bone") %>%
+  ggplot(aes(C16,C18)) +
   geom_point(size = 2, alpha = 0.9, aes(color = group))+ # period
   ggrepel::geom_text_repel(aes(label = Sam_no), size = 2) +
   labs(x = bquote(delta*{}^13*"C 16:0 \u2030"),
@@ -60,6 +61,10 @@ isotope_period <-
   coord_fixed(ratio=1) +
   geom_abline(intercept = -1, linetype = "dashed") +
   geom_abline(intercept = -3.1, linetype = "dashed") +
+  annotate("text", x = -12.5, y = -11, angle = 45, vjust = 1,
+           label = bquote(Delta*{}^13*"C = -1 \u2030")) +
+  annotate("text", x = -12, y = -15.5, angle = 45, vjust = 1,
+           label = bquote(Delta*{}^13*"C = -3.3 \u2030")) +
   annotation_raster(tem2, ymin = -40, ymax= -10 ,
                     xmin = -40.1 , xmax = -10) +
   annotate("text", size = 2.5, x = -35, y = -30.5, label = "FW") +
@@ -67,6 +72,8 @@ isotope_period <-
   annotate("text", size = 2.5, x = -28.5, y = -25, label = "P") +
   annotate("text", size = 2.5, x = -22, y = -17, label = "M") +
   theme_minimal(base_size = 14)
+
+ggsave(here::here("SBP_isotope_period.png"), width = 8, height = , unit = "in")
 
 # plot isotopes of 16 and C18 by context
 isotope_context <-
